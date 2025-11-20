@@ -32,7 +32,7 @@ namespace CuidaDor.Api.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous] // se quiser liberar para ver técnicas sem login
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<ReliefTechniqueListItemDto>>> GetAll()
         {
             var result = await _service.GetAllAsync();

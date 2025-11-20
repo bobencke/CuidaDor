@@ -15,7 +15,6 @@ namespace CuidaDor.Domain.Entities
 
         public bool Accepted { get; set; }
 
-        // agora pode ser nulo
         public DateTime? AcceptedAt { get; set; }
 
         public string PolicyVersion { get; set; } = "1.0";

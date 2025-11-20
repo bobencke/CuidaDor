@@ -12,11 +12,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Camadas
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 
-// Auth JWT
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSection["Key"]!);
 
@@ -40,7 +38,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS
 builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("AllowFlutter", policy =>
@@ -53,14 +50,12 @@ builder.Services.AddCors(opt =>
 
 var app = builder.Build();
 
-// aplica migrations automaticamente (local e Azure)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CuidaDorDbContext>();
     db.Database.Migrate();
 }
 
-// Swagger sempre ligado (para Azure também)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {

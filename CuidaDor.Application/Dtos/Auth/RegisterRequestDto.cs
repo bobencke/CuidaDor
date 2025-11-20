@@ -18,7 +18,7 @@ namespace CuidaDor.Application.Dtos.Auth
 
         [Required]
         [MaxLength(50)]
-        public string Sex { get; set; } = string.Empty; // Feminino/Masculino/Outro
+        public string Sex { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(20)]
@@ -33,16 +33,13 @@ namespace CuidaDor.Application.Dtos.Auth
         [MinLength(6)]
         public string Password { get; set; } = string.Empty;
 
-        // Comorbidades
         public List<string> Comorbidities { get; set; } = new();
 
-        // Acessibilidade
         [Range(0.5, 2.0)]
         public double FontScale { get; set; } = 1.0;
         public bool HighContrast { get; set; }
         public bool VoiceReading { get; set; }
 
-        // LGPD
         public bool ConsentLgpd { get; set; }
     }
 }

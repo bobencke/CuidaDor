@@ -40,7 +40,6 @@ namespace CuidaDor.Infrastructure.Persistence
                 .WithOne(c => c.User)
                 .HasForeignKey<ConsentLgpd>(c => c.UserId);
 
-            // Seed de técnicas básicas (opcional)
             modelBuilder.Entity<ReliefTechnique>().HasData(
                 new ReliefTechnique { Id = 1, Name = "Respiração 4-7-8", ShortDescription = "Respiração • Ansiedade e sono", WarningText = "Pode dar leve tontura no início" },
                 new ReliefTechnique { Id = 2, Name = "Respiração profunda", ShortDescription = "Respiração • Reduz tensão e dor" },

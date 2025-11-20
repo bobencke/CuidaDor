@@ -22,10 +22,8 @@ namespace CuidaDor.Domain.Entities
 
         public string PasswordHash { get; set; } = string.Empty;
 
-        // novo campo que usamos no AuthService
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navegações
         public AccessibilityPreference? AccessibilityPreference { get; set; }
 
         public ConsentLgpd? ConsentLgpd { get; set; }

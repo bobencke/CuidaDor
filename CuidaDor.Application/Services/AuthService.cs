@@ -26,14 +26,12 @@ namespace CuidaDor.Application.Services
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto dto)
         {
-            // se quiser: obrigar a aceitar LGPD
             if (!dto.ConsentLgpd)
                 throw new InvalidOperationException("É necessário aceitar a política de privacidade (LGPD).");
 
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 throw new InvalidOperationException("E-mail já cadastrado.");
 
-            // 1. Usuário
             var user = new User
             {
                 Email = dto.Email,
@@ -47,9 +45,8 @@ namespace CuidaDor.Application.Services
             user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
 
             _context.Users.Add(user);
-            await _context.SaveChangesAsync(); // para gerar Id
+            await _context.SaveChangesAsync();
 
-            // 2. Preferências de acessibilidade
             var pref = new AccessibilityPreference
             {
                 UserId = user.Id,
@@ -59,7 +56,6 @@ namespace CuidaDor.Application.Services
             };
             _context.AccessibilityPreferences.Add(pref);
 
-            // 3. Consentimento LGPD
             var consent = new ConsentLgpd
             {
                 UserId = user.Id,
@@ -69,7 +65,6 @@ namespace CuidaDor.Application.Services
             };
             _context.ConsentLgpds.Add(consent);
 
-            // 4. Comorbidades
             if (dto.Comorbidities != null)
             {
                 foreach (var c in dto.Comorbidities)
@@ -86,7 +81,6 @@ namespace CuidaDor.Application.Services
 
             await _context.SaveChangesAsync();
 
-            // 5. JWT
             return GenerateToken(user);
         }
 

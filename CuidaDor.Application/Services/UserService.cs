@@ -64,13 +64,11 @@ namespace CuidaDor.Application.Services
             user.Sex = dto.Sex;
             user.PhoneNumber = dto.PhoneNumber;
 
-            // Comorbidades
             _context.UserComorbidities.RemoveRange(user.Comorbidities);
             user.Comorbidities = dto.Comorbidities
                 .Select(c => new UserComorbidity { UserId = user.Id, Name = c })
                 .ToList();
 
-            // Acessibilidade
             if (user.AccessibilityPreference == null)
             {
                 user.AccessibilityPreference = new AccessibilityPreference
@@ -82,7 +80,6 @@ namespace CuidaDor.Application.Services
             user.AccessibilityPreference.HighContrast = dto.Accessibility.HighContrast;
             user.AccessibilityPreference.VoiceReading = dto.Accessibility.VoiceReading;
 
-            // LGPD
             if (dto.AcceptLgpd)
             {
                 if (user.ConsentLgpd == null)

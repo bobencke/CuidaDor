@@ -8,7 +8,7 @@ namespace CuidaDor.Application.Dtos.Feedback
 {
     public class GeneralFeedbackRequestDto
     {
-        public int? GeneralFeeling { get; set; } // 1-3
+        public int? GeneralFeeling { get; set; }
         public string? Text { get; set; }
     }
 }
