@@ -1,6 +1,5 @@
-########################
+
 # .NET / Visual Studio #
-########################
 
 .vs/
 bin/
@@ -12,27 +11,26 @@ obj/
 *.log
 *.pdb
 
-# Publicação
+# publicação
 publish/
 *.PublishSettings
 *.pubxml
 *.pubxml.user
 
-# Certificados
+# certificados
 *.pfx
 
-# Banco local
+# banco local
 *.mdf
 *.ldf
 
-# appsettings com segredos (ajuste como preferir)
+# appsettings
 appsettings.Development.json
 appsettings.Production.json
 appsettings.Local.json
 
-################
+
 # Flutter/Dart #
-################
 
 dart_tool/
 .packages
@@ -42,12 +40,12 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 
-# Android
+# android
 cuidador_mobile/android/.gradle/
 cuidador_mobile/android/app/build/
 cuidador_mobile/android/local.properties
 
-# iOS
+# ios
 cuidador_mobile/ios/Pods/
 cuidador_mobile/ios/Flutter/Flutter.framework
 cuidador_mobile/ios/Flutter/Flutter.podspec
