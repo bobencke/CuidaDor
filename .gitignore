@@ -1,0 +1,63 @@
+########################
+# .NET / Visual Studio #
+########################
+
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.log
+*.pdb
+
+# Publicação
+publish/
+*.PublishSettings
+*.pubxml
+*.pubxml.user
+
+# Certificados
+*.pfx
+
+# Banco local
+*.mdf
+*.ldf
+
+# appsettings com segredos (ajuste como preferir)
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
+
+################
+# Flutter/Dart #
+################
+
+dart_tool/
+.packages
+.buildlog/
+.pub-cache/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android
+cuidador_mobile/android/.gradle/
+cuidador_mobile/android/app/build/
+cuidador_mobile/android/local.properties
+
+# iOS
+cuidador_mobile/ios/Pods/
+cuidador_mobile/ios/Flutter/Flutter.framework
+cuidador_mobile/ios/Flutter/Flutter.podspec
+cuidador_mobile/ios/Runner/GeneratedPluginRegistrant.*
+
+# IDEs
+*.iml
+*.ipr
+*.iws
+.idea/
+*.swp
+*.DS_Store
+Thumbs.db
