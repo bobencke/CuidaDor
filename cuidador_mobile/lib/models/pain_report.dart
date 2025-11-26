@@ -16,40 +16,23 @@ class PainEvolutionPoint {
 }
 
 class PainReport {
-  final List<PainEvolutionPoint> points;
-  final double? reductionPercent;
+  final List<PainEvolutionPoint> evolution;
+  final double? percentageReduction;
 
   PainReport({
-    required this.points,
-    this.reductionPercent,
+    required this.evolution,
+    required this.percentageReduction,
   });
 
   factory PainReport.fromJson(Map<String, dynamic> json) {
-    final list = json['points'] as List<dynamic>? ?? [];
-
+    final list = json['evolution'] as List<dynamic>? ?? [];
     return PainReport(
-      points: list
+      evolution: list
           .map((e) => PainEvolutionPoint.fromJson(e as Map<String, dynamic>))
           .toList(),
-      reductionPercent: (json['reductionPercent'] as num?)?.toDouble(),
+      percentageReduction: json['percentageReduction'] == null
+          ? null
+          : (json['percentageReduction'] as num).toDouble(),
     );
   }
-}
-
-class GeneralFeedbackRequest {
-  final int overallFeeling;
-  final int bodyFeeling;
-  final String? comment;
-
-  GeneralFeedbackRequest({
-    required this.overallFeeling,
-    required this.bodyFeeling,
-    this.comment,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'overallFeeling': overallFeeling,
-        'bodyFeeling': bodyFeeling,
-        'comment': comment,
-      };
 }

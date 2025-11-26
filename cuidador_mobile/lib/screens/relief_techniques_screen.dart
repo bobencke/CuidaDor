@@ -1,80 +1,69 @@
 import 'package:flutter/material.dart';
 
+import '../models/relief_technique.dart';
+import '../services/relief_technique_service.dart';
 import 'technique_detail_screen.dart';
 
-class ReliefTechniquesScreen extends StatelessWidget {
+class ReliefTechniquesScreen extends StatefulWidget {
   final String token;
 
-  const ReliefTechniquesScreen({super.key, this.token = ''});
+  const ReliefTechniquesScreen({super.key, required this.token});
+
+  @override
+  State<ReliefTechniquesScreen> createState() => _ReliefTechniquesScreenState();
+}
+
+class _ReliefTechniquesScreenState extends State<ReliefTechniquesScreen> {
+  final _service = ReliefTechniqueService();
+
+  bool _isLoading = true;
+  String? _error;
+  List<ReliefTechniqueListItem> _techniques = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTechniques();
+  }
+
+  Future<void> _loadTechniques() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final items = await _service.getTechniques(widget.token);
+      if (!mounted) return;
+      setState(() => _techniques = items);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFFE0E0E0);
     const primaryColor = Color(0xFF2E7C8A);
 
-    final techniques = [
-      _Technique(
-        title: 'Respiração 4-7-8',
-        subtitle: 'Respiração • Ansiedade e sono',
-        warning: 'Pode dar leve tontura no início',
-      ),
-      _Technique(
-        title: 'Respiração profunda',
-        subtitle: 'Respiração • Reduz tensão e dor',
-      ),
-      _Technique(
-        title: 'Alongamento de mãos',
-        subtitle: 'Alongamentos • Rigidez matinal',
-        warning: 'Pare se houver dor forte',
-      ),
-      const _Technique(
-        title: 'Relaxamento muscular progressivo',
-        subtitle: 'Relaxamento • Tensão corporal',
-      ),
-      const _Technique(
-        title: 'Toque calmante',
-        subtitle: 'Relaxamento • Conforto imediato',
-      ),
-      _Technique(
-        title: 'Calor morno local',
-        subtitle: 'Termoterapia • Rigidez e desconforto',
-        warning: 'Evite pele lesionada; teste a temperatura',
-      ),
-    ];
-
-    Widget buildTechniqueCard(_Technique tech) {
+    Widget buildTechniqueCard(ReliefTechniqueListItem tech) {
       return Card(
         elevation: 2,
         margin: const EdgeInsets.symmetric(vertical: 6),
         child: InkWell(
           onTap: () {
-            if (tech.title == 'Respiração 4-7-8') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TechniqueDetailScreen(
-                    title: 'Respiração 4-7-8',
-                    description:
-                        'Técnica breve para acalmar, reduzir ansiedade e ajudar no sono.',
-                    steps: const [
-                      'Inspire pelo nariz contando até 4.',
-                      'Segure o ar contando até 7.',
-                      'Expire pela boca contando até 8.',
-                      'Repita 4 ciclos completos.',
-                    ],
-                    safetyNote:
-                        'Pare imediatamente se sentir dor forte, tontura intensa ou mal-estar.',
-                  ),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TechniqueDetailScreen(
+                  token: widget.token,
+                  techniqueId: tech.id,
                 ),
-              );
-            } else {
-              // Por enquanto, só a 4-7-8 tem tela detalhada.
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${tech.title} ainda será detalhada.'),
-                ),
-              );
-            }
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(4),
           child: Padding(
@@ -92,7 +81,7 @@ class ReliefTechniquesScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        tech.title,
+                        tech.name,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -100,16 +89,17 @@ class ReliefTechniquesScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        tech.subtitle,
+                        tech.shortDescription,
                         style: const TextStyle(
                           fontSize: 13,
                           color: Colors.black87,
                         ),
                       ),
-                      if (tech.warning != null) ...[
+                      if (tech.warningText != null &&
+                          tech.warningText!.trim().isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
-                          tech.warning!,
+                          tech.warningText!,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.deepOrange,
@@ -135,24 +125,35 @@ class ReliefTechniquesScreen extends StatelessWidget {
         title: const Text('Técnicas de Alívio'),
       ),
       body: SafeArea(
-        child: ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: techniques.length,
-          itemBuilder: (context, index) => buildTechniqueCard(techniques[index]),
-        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: _loadTechniques,
+                            child: const Text('Tentar novamente'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _techniques.length,
+                    itemBuilder: (context, index) =>
+                        buildTechniqueCard(_techniques[index]),
+                  ),
       ),
     );
   }
-}
-
-class _Technique {
-  final String title;
-  final String subtitle;
-  final String? warning;
-
-  const _Technique({
-    required this.title,
-    required this.subtitle,
-    this.warning,
-  });
 }

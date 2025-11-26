@@ -135,7 +135,7 @@ class HomeScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // "Logout" simples: volta para a primeira rota (login).
+                    // "Logout" simples: volta para a tela de login.
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                   style: ElevatedButton.styleFrom(
