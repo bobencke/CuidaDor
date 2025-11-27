@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:graphic/graphic.dart' as graphic;
 
 import '../models/general_feedback_request.dart';
 import '../models/pain_report.dart';
@@ -57,8 +58,7 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
   }
 
   Future<void> _sendFeedback() async {
-    if (_generalFeeling == null &&
-        _feedbackController.text.trim().isEmpty) {
+    if (_generalFeeling == null && _feedbackController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecione um humor ou escreva um feedback.'),
@@ -159,71 +159,101 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
     );
   }
 
+  /// Gráfico de evolução da dor usando a lib `graphic`
+  Widget _buildEvolutionCard() {
+    if (_report == null || _report!.evolution.isEmpty) {
+      return const Text(
+        'Ainda não há dados suficientes. '
+        'Registre suas dores diariamente para acompanhar sua evolução.',
+        style: TextStyle(fontSize: 12, color: Colors.black54),
+      );
+    }
+
+    // Dados vindos da API (PainEvolutionPoint)
+    final points = _report!.evolution;
+
+    // Garante que os pontos estão em ordem cronológica
+    final sortedPoints = [...points]
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    // Lista de maps no formato que o `graphic` espera
+    final List<Map<String, dynamic>> chartData = sortedPoints
+        .map((p) => {
+              'date': p.date,          // eixo X
+              'value': p.averagePain,  // eixo Y
+            })
+        .toList();
+
+    // Varset define que 'date' é X e 'value' é Y
+    final varset = graphic.Varset('date') * graphic.Varset('value');
+
+    return SizedBox(
+      height: 220,
+      child: graphic.Chart(
+        data: chartData,
+        variables: {
+          'date': graphic.Variable(
+            accessor: (Map map) => map['date'] as DateTime,
+            scale: graphic.TimeScale(
+              // formatter recebe DateTime -> String
+              formatter: (dt) => '${dt.day}/${dt.month}',
+            ),
+          ),
+          'value': graphic.Variable(
+            accessor: (Map map) => map['value'] as num,
+            // sua escala é 0–5 (dor de 0 a 5)
+            scale: graphic.LinearScale(min: 0, max: 5),
+          ),
+        },
+        marks: [
+          // Linha
+          graphic.LineMark(
+            position: varset,
+            shape: graphic.ShapeEncode(
+              value: graphic.BasicLineShape(smooth: true),
+              // para linha "degrau": BasicLineShape(stepped: true)
+            ),
+            color: graphic.ColorEncode(value: Colors.teal),
+            size: graphic.SizeEncode(value: 2),
+          ),
+
+          // Área preenchida
+          graphic.AreaMark(
+            position: varset,
+            shape: graphic.ShapeEncode(
+              value: graphic.BasicAreaShape(smooth: true),
+              // ou stepped: BasicAreaShape(stepped: true)
+            ),
+            color: graphic.ColorEncode(
+              value: Colors.teal.withOpacity(0.15),
+            ),
+          ),
+        ],
+        axes: [
+          graphic.Defaults.horizontalAxis,
+          graphic.Defaults.verticalAxis,
+        ],
+      ),
+    );
+  }
+
+  String _buildEvolutionMessage() {
+    final pr = _report?.percentageReduction;
+    if (pr != null && pr > 0) {
+      return 'Você está evoluindo! Sua dor reduziu '
+          '${pr.toStringAsFixed(1)}% nos últimos dias.';
+    } else if (pr != null && pr < 0) {
+      return 'Sua dor aumentou um pouco nos últimos dias. '
+          'Converse com seu profissional de saúde se for necessário.';
+    } else {
+      return 'Continue registrando suas dores para acompanhar sua evolução.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const backgroundColor = Color(0xFFE0E0E0);
     const primaryColor = Color(0xFF2E7C8A);
-
-    Widget buildEvolutionCard() {
-      if (_report == null || _report!.evolution.isEmpty) {
-        return const Text(
-          'Ainda não há dados suficientes. '
-          'Registre suas dores diariamente para acompanhar sua evolução.',
-          style: TextStyle(fontSize: 12, color: Colors.black54),
-        );
-      }
-
-      // Aqui você pode substituir pela implementação da biblioteca `graphic`
-      // utilizando a lista _report!.evolution.
-      final points = _report!.evolution;
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: 160,
-            width: double.infinity,
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                points
-                    .map((p) =>
-                        '${p.date.day}/${p.date.month}: ${p.averagePain.toStringAsFixed(1)}')
-                    .join('  •  '),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.black54,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Substitua o bloco acima por um gráfico usando a biblioteca Graphic, '
-            'usando esses mesmos pontos (data x dor média).',
-            style: TextStyle(fontSize: 11, color: Colors.black45),
-          ),
-        ],
-      );
-    }
-
-    String buildEvolutionMessage() {
-      final pr = _report?.percentageReduction;
-      if (pr != null && pr > 0) {
-        return 'Você está evoluindo! Sua dor reduziu '
-            '${pr.toStringAsFixed(1)}% nos últimos dias.';
-      } else if (pr != null && pr < 0) {
-        return 'Sua dor aumentou um pouco nos últimos dias. '
-            'Converse com seu profissional de saúde se for necessário.';
-      } else {
-        return 'Continue registrando suas dores para acompanhar sua evolução.';
-      }
-    }
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -283,7 +313,7 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                buildEvolutionCard(),
+                                _buildEvolutionCard(),
                               ],
                             ),
                           ),
@@ -302,7 +332,7 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    buildEvolutionMessage(),
+                                    _buildEvolutionMessage(),
                                     style: const TextStyle(fontSize: 13),
                                   ),
                                 ),
@@ -326,8 +356,6 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
                                   ),
                                 ),
                                 SizedBox(height: 8),
-                                // Aqui poderia entrar um resumo futuro,
-                                // por enquanto apenas exibição estática:
                                 Text(
                                   'Esta seção poderá mostrar estatísticas futuras '
                                   'com base nas sessões registradas.',

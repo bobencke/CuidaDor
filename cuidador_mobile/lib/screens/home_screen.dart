@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'login_screen.dart';
 import 'pain_assessment_screen.dart';
 import 'register_profile_screen.dart';
 import 'relief_techniques_screen.dart';
@@ -86,7 +87,10 @@ class HomeScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const RegisterProfileScreen(),
+                      builder: (_) => RegisterProfileScreen(
+                        token: token,
+                        isEditing: true, // <<< abre em modo edição
+                      ),
                     ),
                   );
                 },
@@ -135,8 +139,14 @@ class HomeScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // "Logout" simples: volta para a tela de login.
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    // Logout: limpa a pilha e volta para o login
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LoginScreen(),
+                      ),
+                      (route) => false,
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
