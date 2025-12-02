@@ -24,4 +24,10 @@ class ApiClient {
 
   // Perfil do usuário logado
   static String get userMeUrl => '$baseUrl/api/Users/me';
+
+  // Export dos dados do usuário
+  static String get userDataExportUrl => '$baseUrl/api/Reports/export';
+
+    // Export dos dados de todos os usuários
+  static String get allUsersDataExportUrl => '$baseUrl/api/Reports/export/all';
 }

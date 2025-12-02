@@ -1,9 +1,16 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/auth_response.dart';
 import '../models/register_request.dart';
 import '../models/update_user_profile_request.dart';
+import '../models/user_data_export.dart';
 import '../services/auth_service.dart';
+import '../services/reports_service.dart';
 import '../services/user_service.dart';
 import 'pain_assessment_screen.dart';
 
@@ -20,6 +27,8 @@ class RegisterProfileScreen extends StatefulWidget {
   @override
   State<RegisterProfileScreen> createState() => _RegisterProfileScreenState();
 }
+
+enum _ExportOption { me, all }
 
 class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
   final _formKey = GlobalKey<FormState>();
@@ -47,10 +56,12 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
 
   bool _isSaving = false;
   bool _isLoadingProfile = false;
+  bool _isExporting = false;
   String? _errorMessage;
 
   final _authService = AuthService();
   final _userService = UserService();
+  final _reportsService = ReportsService();
 
   @override
   void initState() {
@@ -150,7 +161,6 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
 
     try {
       if (widget.isEditing && (widget.token ?? '').isNotEmpty) {
-        // --------- MODO EDIÇÃO: chama PUT /api/Users/me ----------------
         final req = UpdateUserProfileRequest(
           fullName: _nameController.text.trim(),
           age: _ageController.text.trim().isEmpty
@@ -174,7 +184,6 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
           const SnackBar(content: Text('Perfil atualizado com sucesso!')),
         );
       } else {
-        // --------- MODO CADASTRO: registra usuário e vai pra Avaliação da Dor
         final req = RegisterRequest(
           fullName: _nameController.text.trim(),
           age: int.tryParse(_ageController.text.trim()) ?? 0,
@@ -208,6 +217,192 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+  // EXPORTAÇÃO EM CSV
+
+  Future<void> _exportUserData({required bool allUsers}) async {
+    final token = widget.token;
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Você precisa estar logado para exportar os dados.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      List<UserDataExport> exports;
+
+      if (allUsers) {
+        exports = await _reportsService.getAllUsersDataExport(token);
+      } else {
+        final single = await _reportsService.getUserDataExport(token);
+        exports = [single];
+      }
+
+      if (exports.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não há dados para exportar.')),
+        );
+        return;
+      }
+
+      // Construção do CSV
+      final buffer = StringBuffer();
+      for (var i = 0; i < exports.length; i++) {
+        final data = exports[i];
+
+        if (i > 0) {
+          buffer.writeln();
+          buffer.writeln();
+        }
+
+        buffer.writeln(
+            '===== USUARIO ${i + 1} - ${_escapeCsv(data.user.fullName)} =====');
+        buffer.write(_buildCsvForUser(data));
+      }
+
+      final csv = buffer.toString();
+
+      final dir = await getTemporaryDirectory();
+      final fileName = allUsers
+          ? 'cuidador_export_todos_${DateTime.now().millisecondsSinceEpoch}.csv'
+          : 'cuidador_export_meus_dados_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsString(csv, encoding: utf8);
+
+      final emailTo = _emailController.text.trim();
+      final subject = allUsers
+          ? 'Exportação de dados - Todos os usuários'
+          : 'Exportação de dados - Meus dados';
+      final body = emailTo.isNotEmpty
+          ? 'Sugestão: envie este arquivo CSV para o e-mail $emailTo a partir do app de e-mail da sua escolha.'
+          : 'Segue o arquivo CSV com os dados exportados.';
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: subject,
+        text: body,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao exportar dados: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+      }
+    }
+  }
+
+  String _buildCsvForUser(UserDataExport data) {
+    final b = StringBuffer();
+
+    // Seção usuário
+    b.writeln('SECAO,CAMPO,VALOR');
+    b.writeln('Usuario,Id,${data.user.id}');
+    b.writeln('Usuario,Nome,${_escapeCsv(data.user.fullName)}');
+    b.writeln('Usuario,Email,${_escapeCsv(data.user.email)}');
+    if (data.user.age != null) {
+      b.writeln('Usuario,Idade,${data.user.age}');
+    }
+    if (data.user.sex != null) {
+      b.writeln('Usuario,Sexo,${_escapeCsv(data.user.sex!)}');
+    }
+
+    // Comorbidades
+    if (data.comorbidities.isNotEmpty) {
+      b.writeln();
+      b.writeln('Comorbidades');
+      b.writeln('UserId,Nome');
+      for (final c in data.comorbidities) {
+        b.writeln('${c.userId},${_escapeCsv(c.name)}');
+      }
+    }
+
+    // Avaliações de dor
+    if (data.painAssessments.isNotEmpty) {
+      b.writeln();
+      b.writeln('AvaliacaoDeDor');
+      b.writeln(
+        'Id,UserId,Date,UsualPain,LocalizedPain,MoodToday,SleepQuality,'
+        'LimitsPhysicalActivities,PainWorseWithMovement,UsesPainMedication,'
+        'UsesNonDrugPainRelief,Notes',
+      );
+      for (final p in data.painAssessments) {
+        b.writeln([
+          p.id,
+          p.userId,
+          p.date.toIso8601String(),
+          p.usualPain,
+          p.localizedPain,
+          p.moodToday,
+          p.sleepQuality,
+          p.limitsPhysicalActivities,
+          p.painWorseWithMovement,
+          p.usesPainMedication,
+          p.usesNonDrugPainRelief,
+          _escapeCsv(p.notes),
+        ].join(','));
+      }
+    }
+
+    // Sessões de técnica
+    if (data.techniqueSessions.isNotEmpty) {
+      b.writeln();
+      b.writeln('SessoesTecnica');
+      b.writeln(
+        'Id,UserId,ReliefTechniqueId,StartedAt,FinishedAt,ResultFeeling,Notes',
+      );
+      for (final s in data.techniqueSessions) {
+        b.writeln([
+          s.id,
+          s.userId,
+          s.reliefTechniqueId,
+          s.startedAt.toIso8601String(),
+          s.finishedAt.toIso8601String(),
+          s.resultFeeling,
+          _escapeCsv(s.notes),
+        ].join(','));
+      }
+    }
+
+    // Feedback geral
+    if (data.generalFeedbacks.isNotEmpty) {
+      b.writeln();
+      b.writeln('FeedbackGeral');
+      b.writeln('Id,UserId,CreatedAt,GeneralFeeling,Text');
+      for (final f in data.generalFeedbacks) {
+        b.writeln([
+          f.id,
+          f.userId,
+          f.createdAt.toIso8601String(),
+          f.generalFeeling ?? '',
+          _escapeCsv(f.text),
+        ].join(','));
+      }
+    }
+
+    return b.toString();
+  }
+
+  String _escapeCsv(String? value) {
+    if (value == null) return '';
+    var v = value.replaceAll('"', '""');
+    if (v.contains(',') || v.contains('\n') || v.contains(';')) {
+      v = '"$v"';
+    }
+    return v;
   }
 
   @override
@@ -531,27 +726,64 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
                       ),
                     ],
                     const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _onSave,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _onSave,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(
+                                              Colors.white),
+                                    ),
+                                  )
+                                : const Text('Salvar'),
+                          ),
                         ),
-                        child: _isSaving
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('Salvar'),
-                      ),
+                        if (widget.token != null &&
+                            widget.token!.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          PopupMenuButton<_ExportOption>(
+                            onSelected: (option) {
+                              if (option == _ExportOption.me) {
+                                _exportUserData(allUsers: false);
+                              } else {
+                                _exportUserData(allUsers: true);
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(
+                                value: _ExportOption.me,
+                                child: Text('Exportar meus dados'),
+                              ),
+                              PopupMenuItem(
+                                value: _ExportOption.all,
+                                child: Text('Exportar dados de todos usuários'),
+                              ),
+                            ],
+                            icon: _isExporting
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.more_vert),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),

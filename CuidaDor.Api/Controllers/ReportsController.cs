@@ -38,5 +38,33 @@ namespace CuidaDor.Api.Controllers
             var result = await _reportService.GetPainReportAsync(userId, days);
             return Ok(result);
         }
+
+        [HttpGet("export")]
+        public async Task<ActionResult<UserDataExportDto>> Export(CancellationToken cancellationToken)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userIdClaim))
+            {
+                return Unauthorized("User id claim not found.");
+            }
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized("Invalid user id claim.");
+            }
+
+            var export = await _reportService.GetUserDataExportAsync(userId, cancellationToken);
+            return Ok(export);
+        }
+
+        [HttpGet("export/all")]
+        public async Task<ActionResult<List<UserDataExportDto>>> ExportAll(
+            CancellationToken cancellationToken)
+        {
+            var exports = await _reportService.GetAllUsersDataExportAsync(cancellationToken);
+            return Ok(exports);
+        }
+
     }
 }

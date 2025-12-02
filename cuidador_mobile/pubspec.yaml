@@ -33,6 +33,8 @@ dependencies:
   http: ^1.2.0
   window_manager: ^0.3.5
   graphic: ^2.6.0
+  path_provider: ^2.1.0
+  share_plus: ^7.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

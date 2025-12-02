@@ -89,7 +89,7 @@ class HomeScreen extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => RegisterProfileScreen(
                         token: token,
-                        isEditing: true, // <<< abre em modo edição
+                        isEditing: true,
                       ),
                     ),
                   );
@@ -139,7 +139,6 @@ class HomeScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Logout: limpa a pilha e volta para o login
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
