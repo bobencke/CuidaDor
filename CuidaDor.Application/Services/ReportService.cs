@@ -30,7 +30,7 @@ namespace CuidaDor.Application.Services
                 .Select(g => new PainEvolutionPointDto
                 {
                     Date = g.Key,
-                    AveragePain = g.Average(p => (int)p.UsualPain)
+                    AveragePain = g.Average(p => (int)p.LocalizedPain)
                 })
                 .OrderBy(e => e.Date)
                 .ToList();

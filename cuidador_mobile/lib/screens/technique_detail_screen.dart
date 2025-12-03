@@ -121,15 +121,22 @@ class _TechniqueDetailScreenState extends State<TechniqueDetailScreen> {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
+                padding: EdgeInsets.all(selected ? 3 : 0),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: selected
+                      ? Border.all(color: color, width: 2)
+                      : null,
+                ),
                 child: CircleAvatar(
-                  radius: selected ? 30 : 24, // <<< AQUI O TAMANHO MUDA
+                  radius: 24,
                   backgroundColor: selected
                       ? color.withOpacity(0.3)
                       : color.withOpacity(0.15),
                   child: Icon(
                     icon,
                     color: color,
-                    size: selected ? 34 : 28, // <<< ÍCONE MAIOR
+                    size: 28,
                   ),
                 ),
               ),
@@ -143,6 +150,7 @@ class _TechniqueDetailScreenState extends State<TechniqueDetailScreen> {
         ),
       );
     }
+
 
 
     return Scaffold(
