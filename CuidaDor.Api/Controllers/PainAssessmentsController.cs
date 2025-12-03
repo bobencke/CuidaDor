@@ -35,8 +35,16 @@ namespace CuidaDor.Api.Controllers
         public async Task<ActionResult<PainAssessmentResponseDto>> Create(PainAssessmentRequestDto dto)
         {
             var userId = GetUserId();
-            var result = await _service.CreateAsync(userId, dto);
-            return Ok(result);
+
+            try
+            {
+                var result = await _service.CreateAsync(userId, dto);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet]

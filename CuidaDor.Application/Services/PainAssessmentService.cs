@@ -18,6 +18,20 @@ namespace CuidaDor.Application.Services
 
         public async Task<PainAssessmentResponseDto> CreateAsync(int userId, PainAssessmentRequestDto dto)
         {
+            var today = DateTime.UtcNow.Date;
+
+            var existsToday = await _context.PainAssessments
+                .AsNoTracking()
+                .AnyAsync(p =>
+                    p.UserId == userId &&
+                    p.Date.Date == today);
+
+            if (existsToday)
+            {
+                throw new InvalidOperationException(
+                    "Você já registrou sua avaliação de dor hoje.");
+            }
+
             var entity = new PainAssessment
             {
                 UserId = userId,
