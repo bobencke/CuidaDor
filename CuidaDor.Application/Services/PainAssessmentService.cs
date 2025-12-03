@@ -18,7 +18,7 @@ namespace CuidaDor.Application.Services
 
         public async Task<PainAssessmentResponseDto> CreateAsync(int userId, PainAssessmentRequestDto dto)
         {
-            var today = DateTime.Now.Date;
+            var today = DateTime.UtcNow.Date;
 
             var existsToday = await _context.PainAssessments
                 .AsNoTracking()
@@ -35,7 +35,7 @@ namespace CuidaDor.Application.Services
             var entity = new PainAssessment
             {
                 UserId = userId,
-                Date = DateTime.Now,
+                Date = DateTime.UtcNow,
                 UsualPain = (PainScale)dto.UsualPain,
                 LocalizedPain = (FaceScale)dto.LocalizedPain,
                 MoodToday = (FaceScale)dto.MoodToday,
