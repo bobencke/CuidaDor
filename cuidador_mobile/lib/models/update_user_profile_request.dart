@@ -11,9 +11,9 @@ class UpdateUserProfileRequest {
 
   UpdateUserProfileRequest({
     required this.fullName,
-    this.age,
-    this.sex,
-    this.phoneNumber,
+    required this.age,
+    required this.sex,
+    required this.phoneNumber,
     required this.comorbidities,
     required this.fontScale,
     required this.highContrast,

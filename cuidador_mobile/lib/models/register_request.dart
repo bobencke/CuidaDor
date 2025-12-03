@@ -34,10 +34,12 @@ class RegisterRequest {
       'email': email,
       'password': password,
       'comorbidities': comorbidities,
-      'fontScale': fontScale,
-      'highContrast': highContrast,
-      'voiceReading': voiceReading,
-      'consentLgpd': consentLgpd,
+      'accessibility': {
+        'fontScale': fontScale,
+        'highContrast': highContrast,
+        'voiceReading': voiceReading,
+      },
+      'acceptLgpd': consentLgpd,
     };
   }
 }
