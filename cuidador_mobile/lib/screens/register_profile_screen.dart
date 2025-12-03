@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 import '../models/auth_response.dart';
 import '../models/register_request.dart';
@@ -63,9 +64,15 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
   final _userService = UserService();
   final _reportsService = ReportsService();
 
+  final FlutterTts _tts = FlutterTts();
+
   @override
   void initState() {
     super.initState();
+
+    _tts.setLanguage('pt-BR');
+    _tts.setSpeechRate(0.5);
+
     if (widget.isEditing && (widget.token ?? '').isNotEmpty) {
       _loadProfile();
     }
@@ -79,7 +86,14 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _newComorbidityController.dispose();
+    _tts.stop();
     super.dispose();
+  }
+
+  Future<void> _speak(String text) async {
+    if (!_voiceReading) return;
+    await _tts.stop();
+    await _tts.speak(text);
   }
 
   void _toggleComorbidity(String c) {
@@ -134,9 +148,11 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final msg = e.toString().replaceFirst('Exception: ', '');
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = msg;
       });
+      _speak(msg);
     } finally {
       if (mounted) {
         setState(() => _isLoadingProfile = false);
@@ -148,9 +164,11 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_consentLgpd) {
+      const msg = 'Você precisa aceitar o uso de dados (LGPD).';
       setState(() {
-        _errorMessage = 'Você precisa aceitar o uso de dados (LGPD).';
+        _errorMessage = msg;
       });
+      _speak(msg);
       return;
     }
 
@@ -180,9 +198,11 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
         await _userService.updateProfile(widget.token!, req);
 
         if (!mounted) return;
+        const msg = 'Perfil atualizado com sucesso!';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perfil atualizado com sucesso!')),
+          const SnackBar(content: Text(msg)),
         );
+        _speak(msg);
       } else {
         final req = RegisterRequest(
           fullName: _nameController.text.trim(),
@@ -209,9 +229,11 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
         );
       }
     } catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
       setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        _errorMessage = msg;
       });
+      _speak(msg);
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -224,11 +246,13 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
   Future<void> _exportUserData({required bool allUsers}) async {
     final token = widget.token;
     if (token == null || token.isEmpty) {
+      const msg = 'Você precisa estar logado para exportar os dados.';
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Você precisa estar logado para exportar os dados.'),
+          content: Text(msg),
         ),
       );
+      _speak(msg);
       return;
     }
 
@@ -248,9 +272,11 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
 
       if (exports.isEmpty) {
         if (!mounted) return;
+        const msg = 'Não há dados para exportar.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não há dados para exportar.')),
+          const SnackBar(content: Text(msg)),
         );
+        _speak(msg);
         return;
       }
 
@@ -293,9 +319,11 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      final msg = 'Erro ao exportar dados: $e';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao exportar dados: $e')),
+        SnackBar(content: Text(msg)),
       );
+      _speak(msg);
     } finally {
       if (mounted) {
         setState(() {
@@ -407,387 +435,425 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFFE0E0E0);
-    const primaryColor = Color(0xFF2E7C8A);
+    const baseBackgroundColor = Color(0xFFE0E0E0);
+    const basePrimaryColor = Color(0xFF2E7C8A);
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        title: const Text('Cadastro e Perfil'),
+    final backgroundColor = _highContrast ? Colors.black : baseBackgroundColor;
+    final primaryColor =
+        _highContrast ? Colors.yellow.shade800 : basePrimaryColor;
+    final cardColor =
+        _highContrast ? const Color(0xFF121212) : Colors.white;
+    final textColor = _highContrast ? Colors.white : Colors.black87;
+
+    final theme = Theme.of(context).copyWith(
+      scaffoldBackgroundColor: backgroundColor,
+      appBarTheme: AppBarTheme(
         backgroundColor: backgroundColor,
+        foregroundColor: textColor,
         elevation: 0,
       ),
-      body: SafeArea(
-        child: _isLoadingProfile
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Cadastro Básico',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Nome*',
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
-                                ),
-                                validator: (v) => v == null || v.isEmpty
-                                    ? 'Informe o nome'
-                                    : null,
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
+      cardColor: cardColor,
+      textTheme: Theme.of(context).textTheme.apply(
+            bodyColor: textColor,
+            displayColor: textColor,
+          ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          foregroundColor: _highContrast ? Colors.black : Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+
+    return Theme(
+      data: theme,
+      child: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(_fontScale),
+        ),
+        child: Scaffold(
+          backgroundColor: backgroundColor,
+          appBar: AppBar(
+            title: const Text('Cadastro e Perfil'),
+          ),
+          body: SafeArea(
+            child: _isLoadingProfile
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
                                 children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _ageController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Idade*',
-                                        border: OutlineInputBorder(),
-                                        isDense: true,
-                                      ),
-                                      validator: (v) {
-                                        if (v == null || v.isEmpty) {
-                                          return 'Informe a idade';
-                                        }
-                                        final n = int.tryParse(v);
-                                        if (n == null || n <= 0) {
-                                          return 'Idade inválida';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: DropdownButtonFormField<String>(
-                                      value: _sex,
-                                      items: const [
-                                        DropdownMenuItem(
-                                          value: 'Feminino',
-                                          child: Text('Feminino'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'Masculino',
-                                          child: Text('Masculino'),
-                                        ),
-                                        DropdownMenuItem(
-                                          value: 'Outro',
-                                          child: Text('Outro'),
-                                        ),
-                                      ],
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          setState(() => _sex = value);
-                                        }
-                                      },
-                                      decoration: const InputDecoration(
-                                        labelText: 'Sexo*',
-                                        border: OutlineInputBorder(),
-                                        isDense: true,
+                                  const Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Cadastro Básico',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
                                       ),
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _phoneController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Contato',
-                                        border: OutlineInputBorder(),
-                                        isDense: true,
-                                      ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _nameController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Nome*',
+                                      border: OutlineInputBorder(),
+                                      isDense: true,
                                     ),
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? 'Informe o nome'
+                                        : null,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _emailController,
-                                      enabled: !widget.isEditing,
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _ageController,
+                                          keyboardType: TextInputType.number,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Idade*',
+                                            border: OutlineInputBorder(),
+                                            isDense: true,
+                                          ),
+                                          validator: (v) {
+                                            if (v == null || v.isEmpty) {
+                                              return 'Informe a idade';
+                                            }
+                                            final n = int.tryParse(v);
+                                            if (n == null || n <= 0) {
+                                              return 'Idade inválida';
+                                            }
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: DropdownButtonFormField<String>(
+                                          value: _sex,
+                                          items: const [
+                                            DropdownMenuItem(
+                                              value: 'Feminino',
+                                              child: Text('Feminino'),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: 'Masculino',
+                                              child: Text('Masculino'),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: 'Outro',
+                                              child: Text('Outro'),
+                                            ),
+                                          ],
+                                          onChanged: (value) {
+                                            if (value != null) {
+                                              setState(() => _sex = value);
+                                            }
+                                          },
+                                          decoration: const InputDecoration(
+                                            labelText: 'Sexo*',
+                                            border: OutlineInputBorder(),
+                                            isDense: true,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _phoneController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Contato',
+                                            border: OutlineInputBorder(),
+                                            isDense: true,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _emailController,
+                                          enabled: !widget.isEditing,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Email*',
+                                            border: OutlineInputBorder(),
+                                            isDense: true,
+                                          ),
+                                          validator: (v) {
+                                            if (widget.isEditing) return null;
+                                            if (v == null || v.isEmpty) {
+                                              return 'Informe o email';
+                                            }
+                                            if (!v.contains('@')) {
+                                              return 'Email inválido';
+                                            }
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (!widget.isEditing) ...[
+                                    const SizedBox(height: 8),
+                                    TextFormField(
+                                      controller: _passwordController,
+                                      obscureText: true,
                                       decoration: const InputDecoration(
-                                        labelText: 'Email*',
+                                        labelText: 'Senha*',
                                         border: OutlineInputBorder(),
                                         isDense: true,
                                       ),
                                       validator: (v) {
                                         if (widget.isEditing) return null;
                                         if (v == null || v.isEmpty) {
-                                          return 'Informe o email';
+                                          return 'Informe a senha';
                                         }
-                                        if (!v.contains('@')) {
-                                          return 'Email inválido';
+                                        if (v.length < 6) {
+                                          return 'Mínimo 6 caracteres';
                                         }
                                         return null;
                                       },
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
-                              if (!widget.isEditing) ...[
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Diagnóstico e comorbidades (Quais?)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                                 const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: true,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Senha*',
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: _allComorbidities
+                                      .map(
+                                        (c) => FilterChip(
+                                          label: Text(c),
+                                          selected: _selectedComorbidities
+                                              .contains(c),
+                                          onSelected: (_) =>
+                                              _toggleComorbidity(c),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _newComorbidityController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Adicionar comorbidade',
+                                          border: OutlineInputBorder(),
+                                          isDense: true,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton(
+                                      onPressed: () {
+                                        final text =
+                                            _newComorbidityController.text
+                                                .trim();
+                                        if (text.isEmpty) return;
+                                        setState(() {
+                                          if (!_allComorbidities
+                                              .contains(text)) {
+                                            _allComorbidities.add(text);
+                                          }
+                                          _selectedComorbidities.add(text);
+                                        });
+                                        _newComorbidityController.clear();
+                                      },
+                                      child: const Text('+ Adicionar'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Preferências de acessibilidade',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
-                                  validator: (v) {
-                                    if (widget.isEditing) return null;
-                                    if (v == null || v.isEmpty) {
-                                      return 'Informe a senha';
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Text('Tamanho da fonte'),
+                                    Expanded(
+                                      child: Slider(
+                                        min: 0.5,
+                                        max: 2.0,
+                                        divisions: 15,
+                                        value: _fontScale,
+                                        onChanged: (v) {
+                                          setState(() => _fontScale = v);
+                                        },
+                                      ),
+                                    ),
+                                    const Text('Aa'),
+                                  ],
+                                ),
+                                SwitchListTile(
+                                  title: const Text('Alto contraste'),
+                                  value: _highContrast,
+                                  onChanged: (v) {
+                                    setState(() => _highContrast = v);
+                                  },
+                                ),
+                                SwitchListTile(
+                                  title: const Text('Leitura por voz'),
+                                  value: _voiceReading,
+                                  onChanged: (v) async {
+                                    setState(() => _voiceReading = v);
+                                    if (v) {
+                                      await _speak(
+                                        'Leitura por voz ativada. O aplicativo poderá ler mensagens importantes para você.',
+                                      );
                                     }
-                                    if (v.length < 6) {
-                                      return 'Mínimo 6 caracteres';
-                                    }
-                                    return null;
                                   },
                                 ),
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Diagnóstico e comorbidades (Quais?)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: _allComorbidities
-                                  .map(
-                                    (c) => FilterChip(
-                                      label: Text(c),
-                                      selected:
-                                          _selectedComorbidities.contains(c),
-                                      onSelected: (_) => _toggleComorbidity(c),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
+                        const SizedBox(height: 12),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _newComorbidityController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Adicionar comorbidade',
-                                      border: OutlineInputBorder(),
-                                      isDense: true,
-                                    ),
+                                const Text(
+                                  'Consentimento para uso de dados (LGPD)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                TextButton.icon(
-                                  onPressed: () {
-                                    final text = _newComorbidityController.text
-                                        .trim();
-                                    if (text.isEmpty) return;
-                                    setState(() {
-                                      if (!_allComorbidities.contains(text)) {
-                                        _allComorbidities.add(text);
-                                      }
-                                      _selectedComorbidities.add(text);
-                                    });
-                                    _newComorbidityController.clear();
+                                const SizedBox(height: 8),
+                                CheckboxListTile(
+                                  value: _consentLgpd,
+                                  onChanged: (v) {
+                                    setState(() => _consentLgpd = v ?? false);
                                   },
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('+ Adicionar'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Preferências de acessibilidade',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Text('Tamanho da fonte'),
-                                Expanded(
-                                  child: Slider(
-                                    min: 0.5,
-                                    max: 2.0,
-                                    divisions: 15,
-                                    value: _fontScale,
-                                    onChanged: (v) {
-                                      setState(() => _fontScale = v);
-                                    },
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  title: const Text(
+                                    'Li e concordo com a coleta e uso dos meus dados '
+                                    'conforme a LGPD.',
                                   ),
                                 ),
-                                const Text('Aa'),
                               ],
                             ),
-                            SwitchListTile(
-                              title: const Text('Alto contraste'),
-                              value: _highContrast,
-                              onChanged: (v) {
-                                setState(() => _highContrast = v);
-                              },
-                            ),
-                            SwitchListTile(
-                              title: const Text('Leitura por voz'),
-                              value: _voiceReading,
-                              onChanged: (v) {
-                                setState(() => _voiceReading = v);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Consentimento para uso de dados (LGPD)',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            CheckboxListTile(
-                              value: _consentLgpd,
-                              onChanged: (v) {
-                                setState(() => _consentLgpd = v ?? false);
-                              },
-                              controlAffinity: ListTileControlAffinity.leading,
-                              title: const Text(
-                                'Li e concordo com a coleta e uso dos meus dados '
-                                'conforme a LGPD.',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isSaving ? null : _onSave,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              foregroundColor: Colors.white,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: _isSaving
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
-                                              Colors.white),
-                                    ),
-                                  )
-                                : const Text('Salvar'),
                           ),
                         ),
-                        if (widget.token != null &&
-                            widget.token!.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          PopupMenuButton<_ExportOption>(
-                            onSelected: (option) {
-                              if (option == _ExportOption.me) {
-                                _exportUserData(allUsers: false);
-                              } else {
-                                _exportUserData(allUsers: true);
-                              }
-                            },
-                            itemBuilder: (context) => const [
-                              PopupMenuItem(
-                                value: _ExportOption.me,
-                                child: Text('Exportar meus dados'),
-                              ),
-                              PopupMenuItem(
-                                value: _ExportOption.all,
-                                child: Text('Exportar dados de todos usuários'),
-                              ),
-                            ],
-                            icon: _isExporting
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.more_vert),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(color: Colors.red),
                           ),
                         ],
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _isSaving ? null : _onSave,
+                                child: _isSaving
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                        ),
+                                      )
+                                    : const Text('Salvar'),
+                              ),
+                            ),
+                            if (widget.token != null &&
+                                widget.token!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              PopupMenuButton<_ExportOption>(
+                                onSelected: (option) {
+                                  if (option == _ExportOption.me) {
+                                    _exportUserData(allUsers: false);
+                                  } else {
+                                    _exportUserData(allUsers: true);
+                                  }
+                                },
+                                itemBuilder: (context) => const [
+                                  PopupMenuItem(
+                                    value: _ExportOption.me,
+                                    child: Text('Exportar meus dados'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _ExportOption.all,
+                                    child: Text(
+                                      'Exportar dados de todos usuários',
+                                    ),
+                                  ),
+                                ],
+                                icon: _isExporting
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.more_vert),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+          ),
+        ),
       ),
     );
   }

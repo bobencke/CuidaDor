@@ -24,7 +24,7 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
   String? _error;
   PainReport? _report;
 
-  int? _generalFeeling; // 1=Melhor, 2=Igual, 3=Pior
+  int? _generalFeeling;
   bool _isSendingFeedback = false;
 
   @override
@@ -159,7 +159,6 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
     );
   }
 
-  /// Gráfico de evolução da dor usando a lib `graphic`
   Widget _buildEvolutionCard() {
     if (_report == null || _report!.evolution.isEmpty) {
       return const Text(
@@ -169,14 +168,11 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
       );
     }
 
-    // Dados vindos da API (PainEvolutionPoint)
     final points = _report!.evolution;
 
-    // Garante que os pontos estão em ordem cronológica
     final sortedPoints = [...points]
       ..sort((a, b) => a.date.compareTo(b.date));
 
-    // Lista de maps no formato que o `graphic` espera
     final List<Map<String, dynamic>> chartData = sortedPoints
         .map((p) => {
               'date': p.date,          // eixo X
@@ -184,7 +180,6 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
             })
         .toList();
 
-    // Varset define que 'date' é X e 'value' é Y
     final varset = graphic.Varset('date') * graphic.Varset('value');
 
     return SizedBox(
@@ -195,34 +190,28 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
           'date': graphic.Variable(
             accessor: (Map map) => map['date'] as DateTime,
             scale: graphic.TimeScale(
-              // formatter recebe DateTime -> String
               formatter: (dt) => '${dt.day}/${dt.month}',
             ),
           ),
           'value': graphic.Variable(
             accessor: (Map map) => map['value'] as num,
-            // sua escala é 0–5 (dor de 0 a 5)
             scale: graphic.LinearScale(min: 0, max: 5),
           ),
         },
         marks: [
-          // Linha
           graphic.LineMark(
             position: varset,
             shape: graphic.ShapeEncode(
               value: graphic.BasicLineShape(smooth: true),
-              // para linha "degrau": BasicLineShape(stepped: true)
             ),
             color: graphic.ColorEncode(value: Colors.teal),
             size: graphic.SizeEncode(value: 2),
           ),
 
-          // Área preenchida
           graphic.AreaMark(
             position: varset,
             shape: graphic.ShapeEncode(
               value: graphic.BasicAreaShape(smooth: true),
-              // ou stepped: BasicAreaShape(stepped: true)
             ),
             color: graphic.ColorEncode(
               value: Colors.teal.withOpacity(0.15),

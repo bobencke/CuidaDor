@@ -37,7 +37,6 @@ class ReliefTechniqueListItem {
   }
 }
 
-/// Passo a passo de uma técnica
 class TechniqueStep {
   final int order;
   final String description;
@@ -55,7 +54,6 @@ class TechniqueStep {
   }
 }
 
-/// Detalhe de técnica (herda os campos do item da lista)
 class ReliefTechniqueDetail extends ReliefTechniqueListItem {
   final List<TechniqueStep> steps;
 

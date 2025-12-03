@@ -196,7 +196,6 @@ class TechniqueStepExport {
   }
 }
 
-/// Pacote completo de export do usuário
 class UserDataExport {
   final UserProfile user;
   final List<UserComorbidityExport> comorbidities;

@@ -27,7 +27,7 @@ class _TechniqueDetailScreenState extends State<TechniqueDetailScreen> {
   ReliefTechniqueDetail? _detail;
 
   late DateTime _startedAt;
-  int? _selectedFeeling; // 1=Melhor, 2=Igual, 3=Pior
+  int? _selectedFeeling;
   bool _isSaving = false;
 
   @override
@@ -110,6 +110,7 @@ class _TechniqueDetailScreenState extends State<TechniqueDetailScreen> {
       required int value,
     }) {
       final selected = _selectedFeeling == value;
+
       return Expanded(
         child: InkWell(
           onTap: () {
@@ -117,15 +118,19 @@ class _TechniqueDetailScreenState extends State<TechniqueDetailScreen> {
           },
           child: Column(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: selected
-                    ? color.withOpacity(0.3)
-                    : color.withOpacity(0.15),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 28,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                child: CircleAvatar(
+                  radius: selected ? 30 : 24, // <<< AQUI O TAMANHO MUDA
+                  backgroundColor: selected
+                      ? color.withOpacity(0.3)
+                      : color.withOpacity(0.15),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: selected ? 34 : 28, // <<< ÍCONE MAIOR
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
@@ -138,6 +143,7 @@ class _TechniqueDetailScreenState extends State<TechniqueDetailScreen> {
         ),
       );
     }
+
 
     return Scaffold(
       backgroundColor: backgroundColor,

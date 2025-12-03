@@ -18,6 +18,15 @@ class CuidaDorApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: false,
         primaryColor: const Color(0xFF2E7C8A),
+        appBarTheme: const AppBarTheme(
+          foregroundColor: Colors.black87,
+          titleTextStyle: TextStyle(
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          iconTheme: IconThemeData(color: Colors.black87),
+        ),
       ),
       home: const LoginScreen(),
       routes: {
