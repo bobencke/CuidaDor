@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/pain_assessment_request.dart';
 import '../services/pain_assessment_service.dart';
+import '../widgets/accessibility_wrapper.dart';
 import 'home_screen.dart';
 
 class PainAssessmentScreen extends StatefulWidget {
@@ -78,16 +79,18 @@ class _PainAssessmentScreenState extends State<PainAssessmentScreen> {
     }
   }
 
-  Widget _buildFaceRow(
-      {required String title,
-      required int value,
-      required ValueChanged<int> onChanged}) {
+  Widget _buildFaceRow({
+    required String title,
+    required int value,
+    required ValueChanged<int> onChanged,
+    required AccessibilityPalette palette,
+  }) {
     const faces = [
-      '😃',
+      '😁',
       '🙂',
       '😐',
       '🙁',
-      '😣',
+      '😭',
     ];
     return Card(
       child: Padding(
@@ -95,9 +98,10 @@ class _PainAssessmentScreenState extends State<PainAssessmentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -110,15 +114,19 @@ class _PainAssessmentScreenState extends State<PainAssessmentScreen> {
                       Text(
                         faces[index],
                         style: TextStyle(
-                          fontSize: selected ? 32 : 28,
+                          fontSize: selected ? 32 : 26,
+                          color:
+                              palette.textColor.withOpacity(selected ? 1 : 0.4),
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text('${index + 1}',
-                          style: TextStyle(
-                            fontWeight:
-                                selected ? FontWeight.bold : FontWeight.normal,
-                          )),
+                      Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          fontWeight:
+                              selected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -132,151 +140,173 @@ class _PainAssessmentScreenState extends State<PainAssessmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF2E7C8A);
-    const backgroundColor = Color(0xFFE0E0E0);
+    return AccessibilityWrapper(
+      token: widget.token,
+      child: Builder(
+        builder: (context) {
+          final palette = AccessibilityScope.of(context).palette;
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        title: const Text('Avaliação da Dor'),
-        backgroundColor: backgroundColor,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Card(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'De 1 a 5 qual sua dor normalmente?',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                      const SizedBox(height: 4),
-                      Slider(
-                        value: _usualPain.toDouble(),
-                        min: 1,
-                        max: 5,
-                        divisions: 4,
-                        label: '$_usualPain',
-                        onChanged: (v) =>
-                            setState(() => _usualPain = v.toInt()),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text('1'),
-                          Text('5'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              _buildFaceRow(
-                title: 'Registro de dor localizada hoje',
-                value: _localizedPain,
-                onChanged: (v) => setState(() => _localizedPain = v),
-              ),
-              _buildFaceRow(
-                title: 'Humor hoje',
-                value: _mood,
-                onChanged: (v) => setState(() => _mood = v),
-              ),
-              _buildFaceRow(
-                title: 'Qualidade de sono hoje',
-                value: _sleep,
-                onChanged: (v) => setState(() => _sleep = v),
-              ),
-              Card(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Questionário',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+          return Scaffold(
+            backgroundColor: palette.backgroundColor,
+            appBar: AppBar(
+              title: const Text('Avaliação da Dor'),
+              backgroundColor: palette.backgroundColor,
+              elevation: 0,
+            ),
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'De 1 a 5 qual sua dor normalmente?',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                            const SizedBox(height: 4),
+                            Slider(
+                              value: _usualPain.toDouble(),
+                              min: 1,
+                              max: 5,
+                              divisions: 4,
+                              label: '$_usualPain',
+                              onChanged: (v) =>
+                                  setState(() => _usualPain = v.toInt()),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '1',
+                                  style: TextStyle(
+                                    color: palette.mutedTextColor,
+                                  ),
+                                ),
+                                Text(
+                                  '5',
+                                  style: TextStyle(
+                                    color: palette.mutedTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      SwitchListTile(
-                        title: const Text('A dor limita as atividades físicas?'),
-                        value: _limitsActivities,
-                        onChanged: (v) =>
-                            setState(() => _limitsActivities = v),
-                      ),
-                      SwitchListTile(
-                        title: const Text('A dor piora com o movimento?'),
-                        value: _worseWithMovement,
-                        onChanged: (v) =>
-                            setState(() => _worseWithMovement = v),
-                      ),
-                      SwitchListTile(
-                        title: const Text('Você usa medicação para dor?'),
-                        value: _usesMedication,
-                        onChanged: (v) =>
-                            setState(() => _usesMedication = v),
-                      ),
-                      SwitchListTile(
-                        title: const Text(
-                            'Você usa alguma técnica não medicamentosa para dor?'),
-                        value: _usesNonDrug,
-                        onChanged: (v) =>
-                            setState(() => _usesNonDrug = v),
-                      ),
-                      TextField(
-                        controller: _notesController,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'Observações (opcional)',
-                          border: OutlineInputBorder(),
+                    ),
+                    _buildFaceRow(
+                      title: 'Registro de dor localizada hoje',
+                      value: _localizedPain,
+                      onChanged: (v) => setState(() => _localizedPain = v),
+                      palette: palette,
+                    ),
+                    _buildFaceRow(
+                      title: 'Humor hoje',
+                      value: _mood,
+                      onChanged: (v) => setState(() => _mood = v),
+                      palette: palette,
+                    ),
+                    _buildFaceRow(
+                      title: 'Qualidade de sono hoje',
+                      value: _sleep,
+                      onChanged: (v) => setState(() => _sleep = v),
+                      palette: palette,
+                    ),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Questionário',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            SwitchListTile(
+                              title: const Text(
+                                  'A dor limita as atividades físicas?'),
+                              value: _limitsActivities,
+                              onChanged: (v) =>
+                                  setState(() => _limitsActivities = v),
+                            ),
+                            SwitchListTile(
+                              title: const Text('A dor piora com o movimento?'),
+                              value: _worseWithMovement,
+                              onChanged: (v) =>
+                                  setState(() => _worseWithMovement = v),
+                            ),
+                            SwitchListTile(
+                              title:
+                                  const Text('Você usa medicação para dor?'),
+                              value: _usesMedication,
+                              onChanged: (v) =>
+                                  setState(() => _usesMedication = v),
+                            ),
+                            SwitchListTile(
+                              title: const Text(
+                                  'Você usa alguma técnica não medicamentosa para dor?'),
+                              value: _usesNonDrug,
+                              onChanged: (v) =>
+                                  setState(() => _usesNonDrug = v),
+                            ),
+                            TextField(
+                              controller: _notesController,
+                              maxLines: 3,
+                              decoration: const InputDecoration(
+                                labelText: 'Observações (opcional)',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_errorMessage != null)
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _onSave,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: palette.primaryColor,
+                          foregroundColor: palette.buttonForegroundColor,
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor:
+                                      AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                ),
+                              )
+                            : const Text('Salvar'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              if (_errorMessage != null)
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _onSave,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text('Salvar'),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

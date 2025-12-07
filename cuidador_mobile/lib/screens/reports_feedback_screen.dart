@@ -5,6 +5,7 @@ import '../models/general_feedback_request.dart';
 import '../models/pain_report.dart';
 import '../services/feedback_service.dart';
 import '../services/reports_service.dart';
+import '../widgets/accessibility_wrapper.dart';
 
 class ReportsFeedbackScreen extends StatefulWidget {
   final String token;
@@ -96,7 +97,10 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
     }
   }
 
-  Widget _buildFaceRow({bool selectable = true}) {
+  Widget _buildFaceRow({
+    bool selectable = true,
+    required AccessibilityPalette palette,
+  }) {
     Widget buildFace({
       required IconData icon,
       required String label,
@@ -127,7 +131,10 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
               const SizedBox(height: 4),
               Text(
                 label,
-                style: const TextStyle(fontSize: 12),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: palette.textColor,
+                ),
               ),
             ],
           ),
@@ -159,24 +166,23 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
     );
   }
 
-  Widget _buildEvolutionCard() {
+  Widget _buildEvolutionCard(AccessibilityPalette palette) {
     if (_report == null || _report!.evolution.isEmpty) {
-      return const Text(
+      return Text(
         'Ainda não há dados suficientes. '
         'Registre suas dores diariamente para acompanhar sua evolução.',
-        style: TextStyle(fontSize: 12, color: Colors.black54),
+        style: TextStyle(fontSize: 12, color: palette.mutedTextColor),
       );
     }
 
     final points = _report!.evolution;
 
-    final sortedPoints = [...points]
-      ..sort((a, b) => a.date.compareTo(b.date));
+    final sortedPoints = [...points]..sort((a, b) => a.date.compareTo(b.date));
 
     final List<Map<String, dynamic>> chartData = sortedPoints
         .map((p) => {
-              'date': p.date,          // eixo X
-              'value': p.averagePain,  // eixo Y
+              'date': p.date, // eixo X
+              'value': p.averagePain, // eixo Y
             })
         .toList();
 
@@ -207,7 +213,6 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
             color: graphic.ColorEncode(value: Colors.teal),
             size: graphic.SizeEncode(value: 2),
           ),
-
           graphic.AreaMark(
             position: varset,
             shape: graphic.ShapeEncode(
@@ -241,199 +246,225 @@ class _ReportsFeedbackScreenState extends State<ReportsFeedbackScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFFE0E0E0);
-    const primaryColor = Color(0xFF2E7C8A);
+    return AccessibilityWrapper(
+      token: widget.token,
+      child: Builder(
+        builder: (context) {
+          final palette = AccessibilityScope.of(context).palette;
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        title: const Text('Relatórios e Feedback'),
-      ),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _error!,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: _loadReport,
-                            child: const Text('Tentar novamente'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 8.0),
-                          child: Text(
-                            'Acompanhe sua evolução e reflita sobre '
-                            'como você se sentiu após as práticas.',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                        Card(
-                          elevation: 2,
+          return Scaffold(
+            backgroundColor: palette.backgroundColor,
+            appBar: AppBar(
+              backgroundColor: palette.backgroundColor,
+              elevation: 0,
+              title: const Text('Relatórios e Feedback'),
+            ),
+            body: SafeArea(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(16),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  'Evolução da dor',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                _buildEvolutionCard(),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Card(
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.trending_down,
-                                  color: Colors.green,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _buildEvolutionMessage(),
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Card(
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
                                 Text(
-                                  'Como você geralmente sente depois das práticas?',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Esta seção poderá mostrar estatísticas futuras '
-                                  'com base nas sessões registradas.',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.black54),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Card(
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Como seu corpo se sente agora '
-                                  'após cuidar de você?',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                                  _error!,
+                                  textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 8),
-                                _buildFaceRow(selectable: true),
+                                ElevatedButton(
+                                  onPressed: _loadReport,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: palette.primaryColor,
+                                    foregroundColor:
+                                        palette.buttonForegroundColor,
+                                  ),
+                                  child: const Text('Tentar novamente'),
+                                ),
                               ],
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Card(
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Você tem algo a compartilhar? '
-                                  'Deixe seu feedback',
+                        )
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: Text(
+                                  'Acompanhe sua evolução e reflita sobre '
+                                  'como você se sentiu após as práticas.',
                                   style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                                    fontSize: 13,
+                                    color: palette.mutedTextColor,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: _feedbackController,
-                                  maxLines: 3,
-                                  decoration: const InputDecoration(
-                                    hintText:
-                                        'Escreva aqui suas impressões, dúvidas ou sugestões...',
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
+                              ),
+                              Card(
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Evolução da dor',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildEvolutionCard(palette),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: _isSendingFeedback
-                                        ? null
-                                        : _sendFeedback,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryColor,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 12),
-                                    ),
-                                    child: _isSendingFeedback
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator
-                                                .adaptive(strokeWidth: 2),
-                                          )
-                                        : const Text('Enviar'),
+                              ),
+                              const SizedBox(height: 12),
+                              Card(
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.trending_down,
+                                        color: Colors.green,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _buildEvolutionMessage(),
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 12),
+                              Card(
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Como você geralmente sente depois das práticas?',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Esta seção poderá mostrar estatísticas futuras '
+                                        'com base nas sessões registradas.',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: palette.mutedTextColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Card(
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Como seu corpo se sente agora após cuidar de você?',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildFaceRow(
+                                        selectable: true,
+                                        palette: palette,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Card(
+                                elevation: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Você tem algo a compartilhar? '
+                                        'Deixe seu feedback',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      TextField(
+                                        controller: _feedbackController,
+                                        maxLines: 3,
+                                        decoration: const InputDecoration(
+                                          hintText:
+                                              'Escreva aqui suas impressões, dúvidas ou sugestões...',
+                                          border: OutlineInputBorder(),
+                                          isDense: true,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          onPressed: _isSendingFeedback
+                                              ? null
+                                              : _sendFeedback,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                palette.primaryColor,
+                                            foregroundColor:
+                                                palette.buttonForegroundColor,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 12),
+                                          ),
+                                          child: _isSendingFeedback
+                                              ? const SizedBox(
+                                                  height: 20,
+                                                  width: 20,
+                                                  child:
+                                                      CircularProgressIndicator
+                                                          .adaptive(
+                                                              strokeWidth: 2),
+                                                )
+                                              : const Text('Enviar'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+            ),
+          );
+        },
       ),
     );
   }

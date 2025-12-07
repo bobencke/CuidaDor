@@ -13,6 +13,7 @@ import '../models/user_data_export.dart';
 import '../services/auth_service.dart';
 import '../services/reports_service.dart';
 import '../services/user_service.dart';
+import '../widgets/accessibility_wrapper.dart';
 import 'pain_assessment_screen.dart';
 
 class RegisterProfileScreen extends StatefulWidget {
@@ -63,6 +64,7 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
   final _authService = AuthService();
   final _userService = UserService();
   final _reportsService = ReportsService();
+  final _accessibilityController = AccessibilityController.instance;
 
   final FlutterTts _tts = FlutterTts();
 
@@ -72,6 +74,8 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
 
     _tts.setLanguage('pt-BR');
     _tts.setSpeechRate(0.5);
+    _fontScale = _accessibilityController.fontScale;
+    _highContrast = _accessibilityController.highContrast;
 
     if (widget.isEditing && (widget.token ?? '').isNotEmpty) {
       _loadProfile();
@@ -146,6 +150,7 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
           _consentLgpd = profile.consent!.accepted;
         }
       });
+      _applyAccessibilityPreferences();
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString().replaceFirst('Exception: ', '');
@@ -158,6 +163,13 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
         setState(() => _isLoadingProfile = false);
       }
     }
+  }
+
+  void _applyAccessibilityPreferences() {
+    _accessibilityController.updatePreferences(
+      fontScale: _fontScale,
+      highContrast: _highContrast,
+    );
   }
 
   Future<void> _onSave() async {
@@ -203,6 +215,7 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
           const SnackBar(content: Text(msg)),
         );
         _speak(msg);
+        _applyAccessibilityPreferences();
       } else {
         final req = RegisterRequest(
           fullName: _nameController.text.trim(),
@@ -227,6 +240,7 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
             builder: (_) => PainAssessmentScreen(token: auth.token),
           ),
         );
+        _applyAccessibilityPreferences();
       }
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '');
@@ -435,55 +449,26 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const baseBackgroundColor = Color(0xFFE0E0E0);
-    const basePrimaryColor = Color(0xFF2E7C8A);
+    return AccessibilityWrapper(
+      token: widget.token,
+      child: Builder(
+        builder: (context) {
+          final palette = AccessibilityScope.of(context).palette;
 
-    final backgroundColor = _highContrast ? Colors.black : baseBackgroundColor;
-    final primaryColor =
-        _highContrast ? Colors.yellow.shade800 : basePrimaryColor;
-    final cardColor =
-        _highContrast ? const Color(0xFF121212) : Colors.white;
-    final textColor = _highContrast ? Colors.white : Colors.black87;
-
-    final theme = Theme.of(context).copyWith(
-      scaffoldBackgroundColor: backgroundColor,
-      appBarTheme: AppBarTheme(
-        backgroundColor: backgroundColor,
-        foregroundColor: textColor,
-        elevation: 0,
-      ),
-      cardColor: cardColor,
-      textTheme: Theme.of(context).textTheme.apply(
-            bodyColor: textColor,
-            displayColor: textColor,
-          ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: _highContrast ? Colors.black : Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    );
-
-    return Theme(
-      data: theme,
-      child: MediaQuery(
-        data: MediaQuery.of(context).copyWith(
-          textScaler: TextScaler.linear(_fontScale),
-        ),
-        child: Scaffold(
-          backgroundColor: backgroundColor,
-          appBar: AppBar(
-            title: const Text('Cadastro e Perfil'),
-          ),
-          body: SafeArea(
-            child: _isLoadingProfile
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
+          return Scaffold(
+            backgroundColor: palette.backgroundColor,
+            appBar: AppBar(
+              backgroundColor: palette.backgroundColor,
+              elevation: 0,
+              title: const Text('Cadastro e Perfil'),
+            ),
+            body: SafeArea(
+              child: _isLoadingProfile
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
                         Card(
                           child: Padding(
                             padding: const EdgeInsets.all(12),
@@ -726,6 +711,7 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
                                         value: _fontScale,
                                         onChanged: (v) {
                                           setState(() => _fontScale = v);
+                                          _applyAccessibilityPreferences();
                                         },
                                       ),
                                     ),
@@ -737,6 +723,7 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
                                   value: _highContrast,
                                   onChanged: (v) {
                                     setState(() => _highContrast = v);
+                                    _applyAccessibilityPreferences();
                                   },
                                 ),
                                 SwitchListTile(
@@ -852,8 +839,9 @@ class _RegisterProfileScreenState extends State<RegisterProfileScreen> {
                       ],
                     ),
                   ),
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
